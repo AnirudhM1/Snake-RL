@@ -1,10 +1,12 @@
 import random
+import numpy as np
 import gym
 from gym import spaces
 
 
 class Snake(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
+    initial_length = 2
 
     def __init__(self, grid_size):
         self.grid_size = grid_size
@@ -102,8 +104,18 @@ class Snake(gym.Env):
                     snake.append(i*self.grid_size + j)
         return random.choice(list(set([x for x in range(0, self.grid_size*self.grid_size)]) - set(snake)))
 
+    # Get random start location for the game
+    def _getRandomHeadLocation(self):
+        return (self.grid_size * self.grid_size) // 2
+
     def reset(self):
-        pass
+        self.state = np.zeros(shape=(self.grid_size, self.grid_size), dtype=int)
+        self.head = self._getRandomHeadLocation()
+        self.state[self.head // self.grid_size][self.head % self.grid_size] = 2
+        self.state[(self.head // self.grid_size) + 1][self.head % self.grid_size] = 1
+        self.food = self._getRandomFoodLocation()
+        self.state[self.food // self.grid_size][self.food % self.grid_size] = 2
+        return self.state
 
     def render(self, mode="human"):
         pass

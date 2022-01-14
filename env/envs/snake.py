@@ -2,13 +2,15 @@ import random
 import numpy as np
 import gym
 from gym import spaces
-
-
+import pygame
+import time
 class Snake(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
     initial_length = 2
 
     def __init__(self, grid_size):
+        pygame.init()
+        self.surface = pygame.display.set_mode((grid_size*10,grid_size*10))
         self.grid_size = grid_size
         self.action_space = spaces.Discrete(4)  # Snake has only 4 possible moves. One in each direction
         # coordinate_space = spaces.Discrete(grid_size * grid_size)  # The space for food and head
@@ -28,7 +30,7 @@ class Snake(gym.Env):
         self.food = None
         self.state = None
 
-    def step(self, action):
+    def step(self, action: int):
         head_j = self.head % self.grid_size
         head_i = (self.head // self.grid_size) % self.grid_size
         tail_i, tail_j = self._findTail([-1, -1], [head_i, head_j])
@@ -53,13 +55,13 @@ class Snake(gym.Env):
         reward = self._getReward()
 
         if not done:  # Update the state
-            self.state[point[0]][point[1]] = 2
             self.state[head_i][head_j] = 1
+            self.state[point[0]][point[1]] = 2
             if self.head == self.food:  # Snake has eaten the food
                 self.food = self._getRandomFoodLocation()  # Updating the food location
+                self.state[self.food // self.grid_size][self.food % self.grid_size] = 3
             else:  # Snake has not eaten the food
                 self.state[tail_i][tail_j] = 0
-
         return self.state, reward, done, {}
 
     # Reward model
@@ -81,7 +83,7 @@ class Snake(gym.Env):
         return False
 
     # Find the tail of the snake
-    def _findTail(self, prev, current):
+    def _findTail(self, prev, current,length):
         up = [current[0]-1, current[1]]
         down = [current[0]+1, current[1]]
         left = [current[0], current[1]-1]
@@ -89,7 +91,7 @@ class Snake(gym.Env):
 
         for next_sqr in [up, down, left, right]:
             if (next_sqr != prev) and self._check(next_sqr) and self.state[next_sqr[0]][next_sqr[1]] == 1:
-                return self._findTail(current, next_sqr)
+                return self._findTail(current, next_sqr,length-1)
         return current
 
     # Checks if the coordinate is within the grid
@@ -109,13 +111,50 @@ class Snake(gym.Env):
         return (self.grid_size * self.grid_size) // 2
 
     def reset(self):
+        self.surface.fill((0, 0, 0))
         self.state = np.zeros(shape=(self.grid_size, self.grid_size), dtype=int)
         self.head = self._getRandomHeadLocation()
         self.state[self.head // self.grid_size][self.head % self.grid_size] = 2
         self.state[(self.head // self.grid_size) + 1][self.head % self.grid_size] = 1
         self.food = self._getRandomFoodLocation()
-        self.state[self.food // self.grid_size][self.food % self.grid_size] = 2
+        self.state[self.food // self.grid_size][self.food % self.grid_size] = 3
         return self.state
 
     def render(self, mode="human"):
         pass
+
+
+snake = Snake(grid_size=10)
+snake.reset()
+while True:
+    snake.surface.fill((0, 0, 0))
+    for event in pygame.event.get():
+           
+          # Condition becomes true when keyboard is pressed   
+        if event.type == pygame.KEYDOWN:
+
+            if event.key == pygame.K_DOWN:
+                action = 1
+
+            if event.key == pygame.K_UP:
+                action = 0
+
+            if event.key == pygame.K_LEFT:
+                action = 2
+
+            if event.key == pygame.K_RIGHT:
+                action = 3
+            _,_,done,_ = snake.step(action)
+            if done:
+                snake.reset()
+        if event.type == pygame.QUIT:
+            pygame.quit()
+    for i in range(snake.grid_size):
+        for j in range(snake.grid_size):
+            if snake.state[j][i] == 1:
+                pygame.draw.rect(snake.surface, (0,255,0), (i*10,j*10,10,10))
+            elif snake.state[j][i] == 2:
+                pygame.draw.rect(snake.surface, (255,255,51), (i*10,j*10,10,10))
+            elif snake.state[j][i] == 3:
+                pygame.draw.rect(snake.surface, (255,0,0), (i*10,j*10,10,10))
+    pygame.display.update()

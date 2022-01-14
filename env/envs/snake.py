@@ -30,7 +30,9 @@ class Snake(gym.Env):
         self.tail = None
         self.food = None
         self.state = None
-        self.snake = []
+        self.snake = None
+        self.pre_action = None
+
     def step(self, action: int):
         head_j = self.head % self.grid_size
         head_i = (self.head // self.grid_size) % self.grid_size
@@ -53,7 +55,17 @@ class Snake(gym.Env):
             raise Exception(f'Invalid action: {action}')
 
         done = self._isGameOver(point)
-        reward = self._getReward()
+
+        if action == 0 and self.pre_action == 1:
+            done = True
+        if action == 1 and self.pre_action == 0:
+            done = True
+        if action == 2 and self.pre_action == 3:
+            done = True
+        if action == 3 and self.pre_action == 2:
+            done = True
+
+        reward = self._getReward(done)
 
         if not done:  # Update the state
             self.state[head_i][head_j] = 1
@@ -65,11 +77,15 @@ class Snake(gym.Env):
             else:  # Snake has not eaten the food
                 self.snake = self.snake[:-1]
                 self.state[tail_i][tail_j] = 0
+
             self.state[point[0]][point[1]] = 2
+        self.pre_action = action
         return self.state, reward, done, {}
 
     # Reward model
-    def _getReward(self):
+    def _getReward(self, done):
+        if done:
+            return -1
         if self.head == self.food:
             return 1
         else:
@@ -95,18 +111,14 @@ class Snake(gym.Env):
         return 0 <= coords[0] < self.grid_size and 0 <= coords[1] < self.grid_size
 
     def _getRandomFoodLocation(self):
-        snake = []
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                if self.state[i][j] == 1 != 0:
-                    snake.append(i*self.grid_size + j)
-        return random.choice(list(set([x for x in range(0, self.grid_size*self.grid_size)]) - set(snake)))
+        return random.choice(list(set([x for x in range(0, self.grid_size*self.grid_size)]) - set(self.snake)))
 
     # Get random start location for the game
     def _getRandomHeadLocation(self):
         return (self.grid_size * self.grid_size) // 2
 
     def reset(self):
+        self.pre_action = 0
         self.surface.fill((0, 0, 0))
         self.state = np.zeros(shape=(self.grid_size, self.grid_size), dtype=int)
         self.head = self._getRandomHeadLocation()

@@ -57,7 +57,6 @@ class Snake(gym.Env):
 
         if not done:  # Update the state
             self.state[head_i][head_j] = 1
-            self.state[point[0]][point[1]] = 2
             self.snake = [self.head] + self.snake
             if self.head == self.food:  # Snake has eaten the food
                 self.food = self._getRandomFoodLocation()  # Updating the food location
@@ -66,6 +65,7 @@ class Snake(gym.Env):
             else:  # Snake has not eaten the food
                 self.snake = self.snake[:-1]
                 self.state[tail_i][tail_j] = 0
+            self.state[point[0]][point[1]] = 2
         return self.state, reward, done, {}
 
     # Reward model

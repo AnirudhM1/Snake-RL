@@ -9,6 +9,7 @@ class Snake(gym.Env):
     initial_length = 2
 
     def __init__(self, grid_size):
+        self.length = 2
         pygame.init()
         self.surface = pygame.display.set_mode((grid_size*10,grid_size*10))
         self.grid_size = grid_size
@@ -29,11 +30,11 @@ class Snake(gym.Env):
         self.tail = None
         self.food = None
         self.state = None
-
+        self.snake = []
     def step(self, action: int):
         head_j = self.head % self.grid_size
         head_i = (self.head // self.grid_size) % self.grid_size
-        tail_i, tail_j = self._findTail([-1, -1], [head_i, head_j])
+        tail_i, tail_j = self._findTail()
         self.tail = tail_i * self.grid_size + tail_j
 
         if action == 0:  # up
@@ -57,10 +58,13 @@ class Snake(gym.Env):
         if not done:  # Update the state
             self.state[head_i][head_j] = 1
             self.state[point[0]][point[1]] = 2
+            self.snake = [self.head] + self.snake
             if self.head == self.food:  # Snake has eaten the food
                 self.food = self._getRandomFoodLocation()  # Updating the food location
                 self.state[self.food // self.grid_size][self.food % self.grid_size] = 3
+                self.length+=1
             else:  # Snake has not eaten the food
+                self.snake = self.snake[:-1]
                 self.state[tail_i][tail_j] = 0
         return self.state, reward, done, {}
 
@@ -83,16 +87,8 @@ class Snake(gym.Env):
         return False
 
     # Find the tail of the snake
-    def _findTail(self, prev, current,length):
-        up = [current[0]-1, current[1]]
-        down = [current[0]+1, current[1]]
-        left = [current[0], current[1]-1]
-        right = [current[0], current[1]+1]
-
-        for next_sqr in [up, down, left, right]:
-            if (next_sqr != prev) and self._check(next_sqr) and self.state[next_sqr[0]][next_sqr[1]] == 1:
-                return self._findTail(current, next_sqr,length-1)
-        return current
+    def _findTail(self):
+        return self.snake[-1] // self.grid_size, self.snake[-1] % self.grid_size
 
     # Checks if the coordinate is within the grid
     def _check(self, coords):
@@ -116,6 +112,7 @@ class Snake(gym.Env):
         self.head = self._getRandomHeadLocation()
         self.state[self.head // self.grid_size][self.head % self.grid_size] = 2
         self.state[(self.head // self.grid_size) + 1][self.head % self.grid_size] = 1
+        self.snake = [self.head, self.head + self.grid_size]
         self.food = self._getRandomFoodLocation()
         self.state[self.food // self.grid_size][self.food % self.grid_size] = 3
         return self.state
